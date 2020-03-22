@@ -15,9 +15,26 @@ scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = "client_secret_youtube.json"
+client_secrets_file = os.environ['SECRET']
 
-playlist_names = ["Test for voting"]
+playlist_names = [
+    "Alle Projekte des #wirvsvirushack",
+    "Forschung und Tests",
+    "Medizinische Versorgung",
+    "Mentale Gesundheit",
+    "Kreativer Gesundheitsschutz",
+    "Datennutzung",
+    "Lebensmittelversorgung",
+    "Distributionsplattformen",
+    "Nachbarschaftshilfe",
+    "Unterstützung besonderer Gruppen",
+    "Home Office",
+    "Bildung",
+    "e-Unterhaltung",
+    "Kommunikation",
+    "Öffentliche Verwaltung und Gesellschaft",
+    "Wirtschaft und Staatliche Unterstützung"
+]
 
 
 def get_authenticated_service():

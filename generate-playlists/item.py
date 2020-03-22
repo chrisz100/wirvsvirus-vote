@@ -15,7 +15,7 @@ scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = "client_secret_youtube.json"
+client_secrets_file = os.environ['SECRET']
 
 videos = ["aMkiOjj8Vnc"]
 
