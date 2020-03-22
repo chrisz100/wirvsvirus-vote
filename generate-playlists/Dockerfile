@@ -5,4 +5,4 @@ RUN pip3 install -r requirements.txt
 ADD . .
 ENV SECRET client_secret.json
 ENTRYPOINT [ "python3" ]
-CMD [ "google_insert_item.py" ]
+CMD [ "playlist.py" ]
