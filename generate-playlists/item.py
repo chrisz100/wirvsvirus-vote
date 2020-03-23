@@ -11,13 +11,17 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+from time import sleep
+import csv
+
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 api_service_name = "youtube"
 api_version = "v3"
-client_secrets_file = os.environ['SECRET']
+client_secrets_file = os.environ["SECRET"]
 
-videos = ["aMkiOjj8Vnc"]
+mapping_file = os.environ["VIDEO_MAPPING"]
+video_dictionary = {}
 
 
 def get_authenticated_service():
@@ -31,18 +35,25 @@ def get_authenticated_service():
 
 
 def run_insert(client):
+    # First, we read the values from a file into our dictionary
+    with open(mapping_file) as f:
+        reader = csv.reader(f)
+        video_dictionary = {rows[0]: rows[1] for rows in reader}
 
-    for video in videos:
+    # Then loop over the dictionary and add videos to playlists
+    for video_id, playlist_id in video_dictionary:
         client.playlistItems().insert(
             part="snippet",
             body={
                 "snippet": {
-                    "playlistId": "PLFxt3hgAGmJWx5N1uJ7Ka0xByzCm4y_La",
+                    "playlistId": playlist_id,
                     "position": 0,
-                    "resourceId": {"kind": "youtube#video", "videoId": video},
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
                 }
             },
         ).execute()
+        # Wait 50 ms after each insert
+        sleep(0.05)
 
     return "Done"
 
