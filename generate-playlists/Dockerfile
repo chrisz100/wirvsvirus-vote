@@ -3,6 +3,6 @@ WORKDIR /app
 ADD requirements.txt .
 RUN pip3 install -r requirements.txt
 ADD . .
-ENV SECRET=client_secret.json VIDEO_MAPPING=videos.csv
+ENV SECRET=file/client_secret.json VIDEO_MAPPING=file/videos.csv
 ENTRYPOINT [ "python3" ]
 CMD [ "shuffle.py" ]
