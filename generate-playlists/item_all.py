@@ -4,26 +4,32 @@
 # See instructions for running these code samples locally:
 # https://developers.google.com/explorer-help/guides/code_samples#python
 
+import csv
+from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
+import logging
 import os
+from random import shuffle
+from time import sleep
+
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from time import sleep
-import csv
+
+logging.basicConfig(format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)s:%(message)s',
+                    level=logging.INFO)
 
 scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 api_service_name = "youtube"
 api_version = "v3"
 client_secrets_file = os.environ["SECRET"]
-
 mapping_file = os.environ["VIDEO_MAPPING"]
-# video_dictionary = {}
-video_array = []
 
+playlist_prefix = '#wirvsvirushack Alle Projekte #'
 
 def get_authenticated_service():
     # Get credentials and create an API client
@@ -35,44 +41,71 @@ def get_authenticated_service():
     return youtube
 
 
-def run_insert(client):
-    # First, we read the values from a file into our dictionary
-    with open(mapping_file) as f:
-        video_array = [line.rstrip("\n") for line in f]
+def run_insert(args):
+    client, position, backoff = args
 
-    # Then loop over the dictionary and add videos to playlists
-    for video_id in video_array:
-        try:
-            client.playlistItems().insert(
-                part="snippet",
-                body={
-                    "snippet": {
-                        # We are putting all videos into the full playlist, hence hard coding the ID
-                        "playlistId": "PLYGe9q9_Jo3AhwDdN4qvhvqTSgfCdYRGD",
-                        "position": 0,
-                        "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                    }
-                },
-            ).execute()
-        except:
-            print(video_id)
-        ## Wait 50 ms after each insert
-        # sleep(0.05)
+    # Create new playlist
+    request = client.playlists().insert(
+        part="snippet,status",
+        body={
+          "snippet": {
+            "title": f"{playlist_prefix}{position}",
+            "description": f"{playlist_prefix}{position}",
+            "tags": [
+              "#WeVsVirus",
+              "Hackathon"
+            ],
+            "defaultLanguage": "de"
+          },
+          "status": {
+            "privacyStatus": "unlisted"
+          }
+        }
+    )
+    try:
+        playlist = request.execute()
+    except BaseException as e:
+        logging.error('Failed creating playlist: %s', e)
+        backoff_time = 1.5**backoff * 60
+        logging.info('Sleeping for %ss', backoff_time)
+        sleep(backoff_time)
+        return run_insert((client, position, backoff + 1))
+    else:
+        logging.info('Created playlist: %s', playlist)
 
-    return "Done"
+        # First, we read the values from a file into our dictionary
+        with open(mapping_file) as f:
+            video_array = [line.rstrip("\n") for line in f]
+        shuffle(video_array)
+
+        # Then loop over the dictionary and add videos to playlists
+        for video_id in video_array:
+            try:
+                response = client.playlistItems().insert(
+                    part="snippet",
+                    body={
+                        "snippet": {
+                            "playlistId": playlist['id'],
+                            "position": 0,
+                            "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                        },
+                    },
+                ).execute()
+                logging.info('Inserted video into playlist %s: %s', playlist['id'], response)
+            except:
+                logging.error('Inserting video failed: %s', video_id)
+
+        return playlist
 
 
 def main():
-    # Disable OAuthlib's HTTPS verification when running locally.
-    # *DO NOT* leave this option enabled in production.
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
     client = get_authenticated_service()
 
-    response = run_insert(client)
+    with ProcessPoolExecutor() as executor:
+        playlists = executor.map(run_insert, zip(repeat(client), range(5), repeat(1)))
 
-    print(response)
-
+    playlist_ids = [playlist['id'] for playlist in playlists]
+    logging.info('Done! playlists: %s', playlist_ids)
 
 if __name__ == "__main__":
     main()
