@@ -42,17 +42,20 @@ def run_insert(client):
 
     # Then loop over the dictionary and add videos to playlists
     for video_id in video_array:
-        client.playlistItems().insert(
-            part="snippet",
-            body={
-                "snippet": {
-                    # We are putting all videos into the full playlist, hence hard coding the ID
-                    "playlistId": "PLYGe9q9_Jo3AhwDdN4qvhvqTSgfCdYRGD",
-                    "position": 0,
-                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                }
-            },
-        ).execute()
+        try:
+            client.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        # We are putting all videos into the full playlist, hence hard coding the ID
+                        "playlistId": "PLYGe9q9_Jo3AhwDdN4qvhvqTSgfCdYRGD",
+                        "position": 0,
+                        "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                    }
+                },
+            ).execute()
+        except:
+            print(video_id)
         ## Wait 50 ms after each insert
         # sleep(0.05)
 
