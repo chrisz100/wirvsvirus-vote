@@ -52,8 +52,8 @@ def run_insert(client):
                 }
             },
         ).execute()
-        # Wait 50 ms after each insert
-        sleep(0.05)
+        ## Wait 50 ms after each insert
+        # sleep(0.05)
 
     return "Done"
 
