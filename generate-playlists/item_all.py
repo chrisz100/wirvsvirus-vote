@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Sample Python code for youtube.playlistItems.insert
-# See instructions for running these code samples locally:
-# https://developers.google.com/explorer-help/guides/code_samples#python
+# Generate and populate 100 playlists on youtube
 
 import csv
 from concurrent.futures import ProcessPoolExecutor
@@ -82,7 +80,7 @@ def main():
     client = youtube_wrapper.get_authenticated_service()
 
     with ProcessPoolExecutor() as executor:
-        playlists = executor.map(run_insert, zip(repeat(client), range(92), repeat(1)))
+        playlists = executor.map(run_insert, zip(repeat(client), range(100), repeat(1)))
 
     playlist_ids = [playlist['id'] for playlist in playlists]
     logging.info('Done! playlists: %s', playlist_ids)

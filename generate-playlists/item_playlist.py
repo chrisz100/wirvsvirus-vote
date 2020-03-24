@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# Populate youtube playlists with videos matched in VIDEO_MAPPING file
+
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 import csv
