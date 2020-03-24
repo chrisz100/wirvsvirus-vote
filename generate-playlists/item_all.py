@@ -12,35 +12,14 @@ import os
 from random import shuffle
 from time import sleep
 
-import google.oauth2.credentials
-import google_auth_oauthlib.flow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google_auth_oauthlib.flow import InstalledAppFlow
-
+import youtube_wrapper
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)s:%(message)s',
                     level=logging.INFO)
 
-scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
-
-api_service_name = "youtube"
-api_version = "v3"
-client_secrets_file = os.environ["SECRET"]
 mapping_file = os.environ["VIDEO_MAPPING"]
 output_file = os.environ["OUTPUT_FILE"]
-
 playlist_prefix = '#wirvsvirushack Alle Projekte #'
-
-def get_authenticated_service():
-    # Get credentials and create an API client
-    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file, scopes
-    )
-    credentials = flow.run_console()
-    youtube = build(api_service_name, api_version, credentials=credentials, cache_discovery=False)
-    return youtube
-
 
 def run_insert(args):
     client, position, backoff = args
@@ -100,7 +79,7 @@ def run_insert(args):
 
 
 def main():
-    client = get_authenticated_service()
+    client = youtube_wrapper.get_authenticated_service()
 
     with ProcessPoolExecutor() as executor:
         playlists = executor.map(run_insert, zip(repeat(client), range(92), repeat(1)))
