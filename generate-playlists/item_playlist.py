@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import csv
+from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
+import csv
 from itertools import repeat
 import logging
 import os
@@ -24,8 +25,6 @@ api_service_name = "youtube"
 api_version = "v3"
 client_secrets_file = os.environ["SECRET"]
 mapping_file = os.environ["VIDEO_MAPPING"]
-
-playlist_data = {}
 
 def get_authenticated_service(secrets_file):
     # Get credentials and create an API client
@@ -67,45 +66,51 @@ def get_playlist_items(playlist_id, client):
     return [item['snippet']['resourceId']['videoId'] for item in items]
 
 def run_insert(args):
-    client, (video, playlist) = args
+    client, (playlist, videos) = args
+    logging.info("Adding up to %d videos to playlist %s", len(videos), playlist)
 
     # check if video is already in list
-    if playlist not in playlist_data:
-        playlist_data[playlist] = get_playlist_items(playlist, client)
-    
-    if video in playlist_data[playlist]:
-        logging.warning('Not adding %s to playlist %s', video, playlist)
-        return None
+    existing_videos = get_playlist_items(playlist, client)
 
-    logging.info('Adding %s to playlist', video)
+    for video in videos:    
+        if video in existing_videos:
+            logging.warning('Not adding %s to playlist %s', video, playlist)
+            continue
 
-    try:
-        response = client.playlistItems().insert(
-            part="snippet",
-            body={
-                "snippet": {
-                    "playlistId": playlist,
-                    "position": 0,
-                    "resourceId": {"kind": "youtube#video", "videoId": video},
+        logging.info('Adding %s to playlist %s', video, playlist)
+
+        try:
+            response = client.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist,
+                        "position": 0,
+                        "resourceId": {"kind": "youtube#video", "videoId": video},
+                    },
                 },
-            },
-        ).execute()
-        logging.info('Inserted video %s into playlist %s', video, playlist)
-    except BaseException as e:
-        logging.error('Inserting video %s failed: %s', video, e)
+            ).execute()
+            logging.info('Inserted video %s into playlist %s', video, playlist)
+        except BaseException as e:
+            logging.error('Inserting video %s failed: %s', video, e)
 
     return response
 
 
 def main():
-    client_video = get_authenticated_service(client_secrets_file)
+    client = get_authenticated_service(client_secrets_file)
 
     with open(mapping_file, newline='') as f:
         data = csv.reader(f, delimiter='\t')
-        playlist_array = list(data)    
+        playlist_array = list(data)
 
+    # Group videos by playlist
+    playlists = defaultdict(list)
+    for video, playlist in playlist_array:
+        playlists[playlist].append(video)
+        
     with ProcessPoolExecutor() as executor:
-        playlists = executor.map(run_insert, zip(repeat(client_video), playlist_array))
+        playlists = executor.map(run_insert, zip(repeat(client), playlists.items()))
 
     logging.info('Finished')
 
