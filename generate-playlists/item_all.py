@@ -28,6 +28,7 @@ api_service_name = "youtube"
 api_version = "v3"
 client_secrets_file = os.environ["SECRET"]
 mapping_file = os.environ["VIDEO_MAPPING"]
+output_file = os.environ["OUTPUT_FILE"]
 
 playlist_prefix = '#wirvsvirushack Alle Projekte #'
 
@@ -37,7 +38,7 @@ def get_authenticated_service():
         client_secrets_file, scopes
     )
     credentials = flow.run_console()
-    youtube = build(api_service_name, api_version, credentials=credentials)
+    youtube = build(api_service_name, api_version, credentials=credentials, cache_discovery=False)
     return youtube
 
 
@@ -79,21 +80,21 @@ def run_insert(args):
         shuffle(video_array)
 
         # Then loop over the dictionary and add videos to playlists
-        for video_id in video_array:
+        for i, video_id in enumerate(video_array):
             try:
                 response = client.playlistItems().insert(
                     part="snippet",
                     body={
                         "snippet": {
                             "playlistId": playlist['id'],
-                            "position": 0,
+                            "position": i,
                             "resourceId": {"kind": "youtube#video", "videoId": video_id},
                         },
                     },
                 ).execute()
-                logging.info('Inserted video into playlist %s: %s', playlist['id'], response)
+                logging.info('Inserted video %s into playlist %s', video_id, playlist['id'])
             except:
-                logging.error('Inserting video failed: %s', video_id)
+                logging.error('Inserting video failed: %s: %s', video_id, playlist['id'])
 
         return playlist
 
@@ -102,10 +103,13 @@ def main():
     client = get_authenticated_service()
 
     with ProcessPoolExecutor() as executor:
-        playlists = executor.map(run_insert, zip(repeat(client), range(5), repeat(1)))
+        playlists = executor.map(run_insert, zip(repeat(client), range(92), repeat(1)))
 
     playlist_ids = [playlist['id'] for playlist in playlists]
     logging.info('Done! playlists: %s', playlist_ids)
+
+    with open(output_file, 'w') as f:
+        f.write(str(playlist_ids))
 
 if __name__ == "__main__":
     main()
